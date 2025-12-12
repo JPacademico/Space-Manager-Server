@@ -1,0 +1,59 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  password  String    
+  role      Role      @default(USER) 
+  
+  bookings  Booking[] // Relacionamento: um usuário tem vários agendamentos
+  createdAt DateTime  @default(now())
+}
+
+model Space {
+  id          String    @id @default(uuid())
+  name        String    
+  type        String    
+  capacity    Int
+  isAvailable Boolean   @default(true) 
+  
+  bookings    Booking[] // Relacionamento: uma sala tem vários agendamentos
+}
+
+model Booking {
+  id        String   @id @default(uuid())
+  startDate DateTime
+  endDate   DateTime
+  status    Status   @default(PENDING) // Começa como PENDING até o Admin aprovar
+  
+  // Relacionamentos
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  
+  spaceId   String
+  space     Space    @relation(fields: [spaceId], references: [id])
+
+  createdAt DateTime @default(now())
+}
+
+enum Role {
+  USER
+  ADMIN
+}
+
+enum Status {
+  PENDING   // Aguardando aprovação
+  APPROVED  // Aprovado pelo Admin (Uso permitido)
+  REJECTED  // Negado pelo Admin
+  COMPLETED // Agendamento finalizado
+}
