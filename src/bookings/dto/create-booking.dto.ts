@@ -7,10 +7,10 @@ export class CreateBookingDto {
   @IsString()
   spaceId!: string;
 
-  @IsDateString() // Garante que é uma data ISO válida
+  @IsDateString()
   startDate!: string;
 
-  @IsInt() // Garante que é número inteiro
-  @Min(1)  // Mínimo de 1 semana
+  @IsInt()
+  @Min(1)
   durationWeeks!: number;
 }

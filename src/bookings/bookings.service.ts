@@ -11,18 +11,15 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 export class BookingsService {
   constructor(private prisma: PrismaService) {}
 
-  // --- HELPER: Logic to check for overlaps ---
   private async checkAvailability(spaceId: string, start: Date, end: Date, excludeBookingId?: string) {
-    // Search for any booking that is APPROVED and Overlaps with our dates
     const conflict = await this.prisma.booking.findFirst({
       where: {
         spaceId: spaceId,
-        status: 'APPROVED', // Only blocked by approved bookings
+        status: 'APPROVED',
         AND: [
-          { startDate: { lt: end } },   // Existing Start < New End
-          { endDate: { gt: start } },   // Existing End > New Start
+          { startDate: { lt: end } },
+          { endDate: { gt: start } },
         ],
-        // If we are updating a booking, don't count itself as a conflict
         NOT: excludeBookingId ? { id: excludeBookingId } : undefined,
       },
     });
@@ -34,7 +31,6 @@ export class BookingsService {
     }
   }
 
-  // 1. User Request Logic
   async create(createBookingDto: CreateBookingDto) {
     const { userId, spaceId, startDate, durationWeeks } = createBookingDto;
 
@@ -46,7 +42,6 @@ export class BookingsService {
       throw new BadRequestException('Start date cannot be in the past.');
     }
 
-    // NEW: Check if it's already taken before even saving
     await this.checkAvailability(spaceId, start, end);
 
     return this.prisma.booking.create({
@@ -60,9 +55,7 @@ export class BookingsService {
     });
   }
 
-  // 2. Admin Approval Logic
   async approveBooking(bookingId: string) {
-    // First, find the booking to know its dates
     const booking = await this.prisma.booking.findUnique({
       where: { id: bookingId },
     });
@@ -70,14 +63,11 @@ export class BookingsService {
     if (!booking) throw new NotFoundException('Booking not found');
     if (booking.status === 'APPROVED') throw new BadRequestException('Already approved');
 
-    // NEW: Check conflict again (Double check logic)
-    // Scenario: User A and User B requested the same room. 
-    // Admin approves User A. Now Admin tries to approve User B -> This must fail.
     await this.checkAvailability(
       booking.spaceId, 
       booking.startDate, 
       booking.endDate, 
-      bookingId // Exclude itself from the check
+      bookingId
     );
 
     return this.prisma.booking.update({
@@ -86,7 +76,6 @@ export class BookingsService {
     });
   }
 
-  // ... (Keep the read methods as they were) ...
   async findMyAppointments(userId: string) {
     return this.prisma.booking.findMany({
       where: { userId, status: 'APPROVED' },
