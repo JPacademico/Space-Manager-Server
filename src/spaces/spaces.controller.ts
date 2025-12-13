@@ -1,7 +1,6 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param } from '@nestjs/common';
 import { SpacesService } from './spaces.service';
 import { CreateSpaceDto } from './dto/create-space.dto';
-import { UpdateSpaceDto } from './dto/update-space.dto';
 
 @Controller('spaces')
 export class SpacesController {
@@ -19,7 +18,6 @@ export class SpacesController {
 
   @Get(':id')
   findOne(@Param('id') id: string) {
-    return this.spacesService.findOne(+id);
+    return this.spacesService.findOne(id);
   }
-
 }
