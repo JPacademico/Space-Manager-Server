@@ -1,6 +1,16 @@
+import { IsString, IsInt, IsDateString, Min } from 'class-validator';
+
 export class CreateBookingDto {
-    userId: string;        // Quem está pedindo
-    spaceId: string;       // Qual sala
-    startDate: string;     // Data de início (formato ISO string)
-    durationWeeks: number; // Quantas semanas vai durar
+  @IsString()
+  userId!: string;
+
+  @IsString()
+  spaceId!: string;
+
+  @IsDateString() // Garante que é uma data ISO válida
+  startDate!: string;
+
+  @IsInt() // Garante que é número inteiro
+  @Min(1)  // Mínimo de 1 semana
+  durationWeeks!: number;
 }

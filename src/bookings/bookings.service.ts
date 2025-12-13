@@ -1,4 +1,9 @@
-import { Injectable, BadRequestException } from '@nestjs/common';
+import { 
+  Injectable, 
+  BadRequestException, 
+  ConflictException, 
+  NotFoundException 
+} from '@nestjs/common';
 import { PrismaService } from '../prisma.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 
@@ -6,19 +11,43 @@ import { CreateBookingDto } from './dto/create-booking.dto';
 export class BookingsService {
   constructor(private prisma: PrismaService) {}
 
-  // 1. Lógica de Solicitação (Usuário)
+  // --- HELPER: Logic to check for overlaps ---
+  private async checkAvailability(spaceId: string, start: Date, end: Date, excludeBookingId?: string) {
+    // Search for any booking that is APPROVED and Overlaps with our dates
+    const conflict = await this.prisma.booking.findFirst({
+      where: {
+        spaceId: spaceId,
+        status: 'APPROVED', // Only blocked by approved bookings
+        AND: [
+          { startDate: { lt: end } },   // Existing Start < New End
+          { endDate: { gt: start } },   // Existing End > New Start
+        ],
+        // If we are updating a booking, don't count itself as a conflict
+        NOT: excludeBookingId ? { id: excludeBookingId } : undefined,
+      },
+    });
+
+    if (conflict) {
+      throw new ConflictException(
+        `Space is already booked from ${conflict.startDate.toISOString()} to ${conflict.endDate.toISOString()}`
+      );
+    }
+  }
+
+  // 1. User Request Logic
   async create(createBookingDto: CreateBookingDto) {
     const { userId, spaceId, startDate, durationWeeks } = createBookingDto;
 
-    // Calcular Data Final
     const start = new Date(startDate);
     const end = new Date(start);
-    end.setDate(end.getDate() + (durationWeeks * 7)); // Soma as semanas em dias
+    end.setDate(end.getDate() + (durationWeeks * 7));
 
-    // Validação Simples: Data não pode ser no passado
     if (start < new Date()) {
-      throw new BadRequestException('A data de início não pode ser no passado.');
+      throw new BadRequestException('Start date cannot be in the past.');
     }
+
+    // NEW: Check if it's already taken before even saving
+    await this.checkAvailability(spaceId, start, end);
 
     return this.prisma.booking.create({
       data: {
@@ -26,35 +55,49 @@ export class BookingsService {
         spaceId,
         startDate: start,
         endDate: end,
-        status: 'PENDING', // REGRA: Sempre começa como Pendente
+        status: 'PENDING',
       },
     });
   }
 
-  // 2. Lógica de Aprovação (Admin)
+  // 2. Admin Approval Logic
   async approveBooking(bookingId: string) {
+    // First, find the booking to know its dates
+    const booking = await this.prisma.booking.findUnique({
+      where: { id: bookingId },
+    });
+
+    if (!booking) throw new NotFoundException('Booking not found');
+    if (booking.status === 'APPROVED') throw new BadRequestException('Already approved');
+
+    // NEW: Check conflict again (Double check logic)
+    // Scenario: User A and User B requested the same room. 
+    // Admin approves User A. Now Admin tries to approve User B -> This must fail.
+    await this.checkAvailability(
+      booking.spaceId, 
+      booking.startDate, 
+      booking.endDate, 
+      bookingId // Exclude itself from the check
+    );
+
     return this.prisma.booking.update({
       where: { id: bookingId },
       data: { status: 'APPROVED' },
     });
   }
 
-  // 3. Lógica de "Meus Agendamentos" (Usuário - Apenas Aprovados)
+  // ... (Keep the read methods as they were) ...
   async findMyAppointments(userId: string) {
     return this.prisma.booking.findMany({
-      where: {
-        userId: userId,
-        status: 'APPROVED', // Só retorna o que já foi aprovado
-      },
-      include: { space: true }, // Traz os detalhes da sala junto
+      where: { userId, status: 'APPROVED' },
+      include: { space: true },
     });
   }
 
-  // 4. Lógica para Admin ver todos os Pendentes
   async findPending() {
     return this.prisma.booking.findMany({
       where: { status: 'PENDING' },
-      include: { space: true, user: true }, // Traz detalhes de quem pediu e qual sala
+      include: { space: true, user: true },
     });
   }
 }
