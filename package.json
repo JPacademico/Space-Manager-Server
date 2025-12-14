@@ -18,6 +18,7 @@
     "test:cov": "jest --coverage",
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json"
+    
   },
   "dependencies": {
     "@nestjs/common": "^11.0.1",
@@ -64,6 +65,9 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.20.0"
   },
+  "prisma": {
+  "seed": "ts-node prisma/seed.ts"
+  },
   "jest": {
     "moduleFileExtensions": [
       "js",
@@ -81,4 +85,5 @@
     "coverageDirectory": "../coverage",
     "testEnvironment": "node"
   }
+  
 }
