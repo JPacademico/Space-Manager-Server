@@ -1,6 +1,7 @@
-import { IsString, IsInt, IsDateString, Min } from 'class-validator';
+import { IsString, IsInt, IsDateString, Min, IsOptional } from 'class-validator';
 
 export class CreateBookingDto {
+  @IsOptional()
   @IsString()
   userId!: string;
 
