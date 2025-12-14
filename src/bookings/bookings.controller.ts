@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request, ForbiddenException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, UseGuards, Request, ForbiddenException, Delete } from '@nestjs/common';
 import { BookingsService } from './bookings.service';
 import { CreateBookingDto } from './dto/create-booking.dto';
 import { AuthGuard } from '@nestjs/passport';
@@ -40,5 +40,12 @@ export class BookingsController {
   @Get('my-appointments')
   findMyAppointments(@Request() req) {
     return this.bookingsService.findMyAppointments(req.user.id); 
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Delete(':id') // DELETE /bookings/:id
+  remove(@Request() req, @Param('id') id: string) {
+    if (req.user.role !== 'ADMIN') throw new ForbiddenException();
+    return this.bookingsService.rejectBooking(id);
   }
 }

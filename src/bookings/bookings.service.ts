@@ -95,4 +95,10 @@ export class BookingsService {
       include: { space: true, user: true },
     });
   }
+
+  async rejectBooking(id: string) {
+    return this.prisma.booking.delete({
+      where: { id },
+    });
+  }
 }
