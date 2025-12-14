@@ -25,8 +25,14 @@ export class BookingsService {
     });
 
     if (conflict) {
+      const formatter = new Intl.DateTimeFormat('pt-BR', {
+        day: '2-digit', month: '2-digit', year: 'numeric'
+      });
+
+      const startDate = formatter.format(conflict.startDate);
+      const endDate = formatter.format(conflict.endDate);
       throw new ConflictException(
-        `Space is already booked from ${conflict.startDate.toISOString()} to ${conflict.endDate.toISOString()}`
+        `Este espaço já está ocupado de ${startDate} até ${endDate}.`
       );
     }
   }

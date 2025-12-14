@@ -25,6 +25,8 @@ model Space {
   name        String    
   type        String    
   capacity    Int
+  description String?
+  imageUrl    String?
   isAvailable Boolean   @default(true) 
   
   bookings    Booking[] // Relacionamento: uma sala tem vários agendamentos
